@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1f6f8b">
+<title>Lencería 808 Oceandrive</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6f8;color:#1f2933}
+header{background:#1f6f8b;color:white;padding:18px 16px;text-align:center}
+header h1{margin:0;font-size:21px}header p{margin:5px 0 0;font-size:14px}
+main{max-width:620px;margin:auto;padding:14px}
+.card{background:white;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #0001}
+button{border:0;border-radius:10px;padding:13px 16px;font-size:16px;cursor:pointer}
+.menu button{width:100%;margin:6px 0;color:white}.receive{background:#238636}.send{background:#c62828}.inventory{background:#455a64}.history{background:#6a4c93}
+h2{font-size:18px;margin-top:0}.item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
+.item:last-child{border-bottom:0}.name{font-size:15px;max-width:55%}.counter{display:flex;align-items:center;gap:8px}.counter button{width:42px;height:42px;padding:0;font-size:24px;background:#e8eef2}.qty{min-width:28px;text-align:center;font-weight:bold;font-size:18px}
+.primary{width:100%;background:#1f6f8b;color:#fff;margin-top:12px}.secondary{background:#e8eef2;width:100%;margin-top:8px}
+.hidden{display:none}.alert{background:#fff3cd;border:1px solid #ffe08a;padding:12px;border-radius:10px;margin-top:12px}.ok{background:#dff5e4;border:1px solid #a8ddb5;padding:12px;border-radius:10px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eef3f6}
+.small{font-size:12px;color:#667085}.danger{background:#b42318;color:white}
+</style>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1f6f8b"></head>
+<body>
+<header><h1>🧺 Lencería 808 – Oceandrive</h1><p>Control de entradas y salidas</p></header>
+<main>
+<section id="home" class="card menu">
+<h2>¿Qué desea registrar?</h2>
+<button class="receive" onclick="show('receive')">🟢 Recibir lencería</button>
+<button class="send" onclick="show('send')">🔴 Enviar a lavandería</button>
+<button class="inventory" onclick="show('inv')">📦 Ver inventario</button>
+<button class="history" onclick="show('history')">📋 Historial</button>
+</section>
+
+<section id="receive" class="card hidden">
+<h2>🟢 Recepción de lencería</h2>
+<p class="small">Indique cuántas unidades limpias regresaron.</p>
+<div id="receiveItems"></div>
+<button class="primary" onclick="saveMovement('recepcion')">REGISTRAR RECEPCIÓN</button>
+<button class="secondary" onclick="show('home')">Volver</button>
+</section>
+
+<section id="send" class="card hidden">
+<h2>🔴 Salida a lavandería</h2>
+<p class="small">Indique cuántas unidades se envían.</p>
+<div id="sendItems"></div>
+<button class="primary" onclick="saveMovement('salida')">REGISTRAR SALIDA</button>
+<button class="secondary" onclick="show('home')">Volver</button>
+</section>
+
+<section id="inv" class="card hidden">
+<h2>📦 Inventario actual</h2>
+<div id="inventory"></div>
+<button class="secondary" onclick="show('home')">Volver</button>
+</section>
+
+<section id="history" class="card hidden">
+<h2>📋 Historial</h2>
+<div id="hist"></div>
+<button class="danger" onclick="clearHistory()">Borrar historial</button>
+<button class="secondary" onclick="show('home')">Volver</button>
+</section>
+</main>
+
+<script>
+const master=[
+["Toallas de cuerpo",4],["Toallas de mano",1],["Toallas de piso",1],
+["Sábanas cama doble",2],["Fundas cama doble",4],["Sábanas sofá cama",2],["Fundas sofá cama",2]
+];
+let inv=JSON.parse(localStorage.getItem("inv808")||"null")||Object.fromEntries(master);
+let history=JSON.parse(localStorage.getItem("hist808")||"[]");
+let counts={};
+
+function renderItems(id){
+ const box=document.getElementById(id); box.innerHTML="";
+ master.forEach(([name,max])=>{
+  counts[name]=0;
+  box.innerHTML+=`<div class="item"><div class="name">${name}<br><span class="small">Máximo: ${max}</span></div>
+  <div class="counter"><button onclick="change('${name}',-1)">−</button><span class="qty" id="${id}_${name}">0</span><button onclick="change('${name}',1)">+</button></div></div>`;
+ });
+}
+function change(name,n){counts[name]=Math.max(0,Math.min(99,(counts[name]||0)+n));
+ document.querySelectorAll(`[id$="_${CSS.escape(name)}"]`).forEach(e=>e.textContent=counts[name]);
+}
+function saveMovement(type){
+ const entries=master.map(([name,max])=>[name,counts[name]||0]).filter(x=>x[1]>0);
+ if(!entries.length){alert("Seleccione al menos una cantidad.");return}
+ const now=new Date().toLocaleString("es-CO");
+ entries.forEach(([name,q])=>{ if(type==="salida") inv[name]-=q; else inv[name]+=q; });
+ history.unshift({fecha:now,tipo:type,items:entries});
+ localStorage.setItem("inv808",JSON.stringify(inv));localStorage.setItem("hist808",JSON.stringify(history));
+ alert(type==="salida"?"Salida registrada.":"Recepción registrada.");
+ counts={}; renderItems(type==="salida"?"sendItems":"receiveItems"); show("home");
+}
+function renderInventory(){
+ let html="<table><tr><th>Elemento</th><th>Actual</th><th>Base</th></tr>";
+ master.forEach(([n,m])=>{let v=inv[n]; html+=`<tr><td>${n}</td><td><b>${v}</b></td><td>${m}</td></tr>`});html+="</table>";
+ document.getElementById("inventory").innerHTML=html;
+}
+function renderHistory(){
+ if(!history.length){document.getElementById("hist").innerHTML="<p>No hay movimientos registrados.</p>";return}
+ let html="";
+ history.slice(0,30).forEach(x=>{
+  html+=`<div class="card"><b>${x.tipo==="salida"?"🔴 Salida":"🟢 Recepción"}</b><br><span class="small">${x.fecha}</span><ul>`;
+  x.items.forEach(i=>html+=`<li>${i[0]}: ${i[1]}</li>`);html+="</ul></div>";
+ });
+ document.getElementById("hist").innerHTML=html;
+}
+function show(id){
+ document.querySelectorAll("main>section").forEach(s=>s.classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+ if(id==="receive")renderItems("receiveItems");
+ if(id==="send")renderItems("sendItems");
+ if(id==="inv")renderInventory();
+ if(id==="history")renderHistory();
+}
+function clearHistory(){if(confirm("¿Borrar todo el historial?")){history=[];localStorage.setItem("hist808","[]");renderHistory()}}
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}</script></body></html>
