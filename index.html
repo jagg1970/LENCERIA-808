@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f6f8b"><link rel="manifest" href="manifest.json">
+<title>Lencería Oceandrive V2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6f8;color:#1f2933}
+header{background:#1f6f8b;color:#fff;padding:18px;text-align:center}h1{margin:0;font-size:21px}header p{margin:5px 0;font-size:13px}
+main{max-width:650px;margin:auto;padding:14px}.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #0001}
+button{border:0;border-radius:10px;padding:13px;font-size:16px;cursor:pointer}.menu button{width:100%;margin:6px 0;color:#fff}
+.receive{background:#238636}.send{background:#c62828}.inventory{background:#455a64}.history{background:#6a4c93}.apart{background:#1f6f8b;color:#fff;width:100%;margin:6px 0}
+.primary{background:#1f6f8b;color:#fff;width:100%;margin-top:12px}.secondary{background:#e8eef2;width:100%;margin-top:8px}
+.hidden{display:none}.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee}.name{max-width:58%;font-size:14px}
+.counter{display:flex;align-items:center;gap:8px}.counter button{width:40px;height:40px;padding:0;background:#e8eef2;font-size:23px}.qty{min-width:24px;text-align:center;font-weight:bold}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eef3f6}
+.small{font-size:12px;color:#667085}.alert{background:#fff3cd;padding:10px;border-radius:9px;margin:10px 0}.ok{background:#dff5e4;padding:10px;border-radius:9px;margin:10px 0}
+select,textarea,input{width:100%;padding:11px;border:1px solid #ccd5dc;border-radius:8px;font-size:15px;margin:5px 0 10px}
+.move{border:1px solid #ddd;border-radius:10px;padding:12px;margin:8px 0}.pending{color:#9a6700;font-weight:bold}.alert ul{margin:7px 0 0 18px;padding:0}.alert li{margin:3px 0}
+</style></head><body>
+<header><h1>🧺 Lencería Oceandrive</h1><p>Control de inventario y lavandería · V2 corregida</p></header>
+<main>
+<section id="home" class="card menu"><h2>Seleccionar apartamento</h2><div id="apartments"></div></section>
+<section id="dash" class="card hidden"><h2 id="dashTitle"></h2><div id="summary"></div><div id="alerts"></div>
+<button class="receive" onclick="openMove('recepcion')">🟢 Recibir de lavandería</button>
+<button class="send" onclick="openMove('salida')">🔴 Enviar a lavandería</button>
+<button class="inventory" onclick="showInventory()">📦 Inventario</button>
+<button class="history" onclick="showHistory()">📋 Historial</button>
+<button class="secondary" onclick="show('home')">Cambiar apartamento</button></section>
+<section id="move" class="card hidden"><h2 id="moveTitle"></h2>
+<div class="move"><b id="moveNumber"></b><br><span id="moveDate" class="small"></span></div>
+<label>Persona que realiza el movimiento</label><select id="person"><option value="">Seleccione...</option><option>Empleada</option><option>Administrador</option><option>Otro</option></select>
+<div id="moveItems"></div>
+<div id="issues" class="hidden"><h3>Faltantes / deterioros</h3>
+<label>Faltantes (informativos)</label><input id="missing" type="number" min="0" value="0">
+<label>Deterioradas (informativos)</label><input id="damaged" type="number" min="0" value="0">
+<label>Motivo / observaciones</label><textarea id="obs" rows="2" placeholder="Ej.: 1 toalla quedó en lavandería"></textarea></div>
+<button class="primary" onclick="saveMove()">REGISTRAR MOVIMIENTO</button><button class="secondary" onclick="showDash()">Cancelar</button></section>
+<section id="inv" class="card hidden"><h2>📦 Inventario</h2><div id="invBox"></div><button class="secondary" onclick="showDash()">Volver</button></section>
+<section id="hist" class="card hidden"><h2>📋 Historial</h2><div id="histBox"></div><button class="secondary" onclick="showDash()">Volver</button></section>
+</main>
+<script>
+const masters={
+"808 – Oceandrive":[["Toallas de cuerpo",8],["Toallas de mano",4],["Toallas de piso",2],["Toallas de piscina",4],["Sábanas cama doble",4],["Fundas cama doble",8],["Sábanas sofá cama",4],["Fundas sofá cama",4],["Cobija gruesa",2],["Protector de colchón",1],["Protector de almohada",4],["Pie de cama",1]],
+"313":[["Toallas de cuerpo",8],["Toallas de mano",4],["Toallas de piso",4],["Toallas de piscina",4],["Sábanas cama 2X2",4],["Fundas cama grande",8],["Sábanas sofá cama",8],["Fundas sofá cama",4],["Cobija gruesa",2],["Protector de colchón",1],["Protector almohada",4],["Pie de cama",1]],
+"201":[["Toallas de cuerpo",0],["Toallas de mano",0],["Toallas de piso",0],["Toallas de piscina",0],["Sábanas cama doble",0],["Fundas cama doble",0],["Sábanas sofá cama",0],["Fundas sofá cama",0],["Cobija gruesa",0],["Protector de colchón",0],["Protector de almohada",0],["Pie de cama",0]]
+};
+let apartment="",type="",counts={},currentMove="";
+let data=JSON.parse(localStorage.getItem("lencV2")||"null")||{};
+function initApt(a){if(!data[a])data[a]={at:Object.fromEntries(masters[a].map(x=>[x[0],x[1]])),laundry:Object.fromEntries(masters[a].map(x=>[x[0],0])),damaged:Object.fromEntries(masters[a].map(x=>[x[0],0])),hist:[],next:1};}
+function save(){localStorage.setItem("lencV2",JSON.stringify(data))}
+function now(){let d=new Date();return {date:d.toLocaleDateString("es-CO"),time:d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}}
+function nextMove(){let n=data[apartment].next||1;data[apartment].next=n+1;save();return "MOV-"+String(n).padStart(4,"0")}
+function renderApts(){let b=document.getElementById("apartments");b.innerHTML="";Object.keys(masters).forEach(a=>b.innerHTML+=`<button class="apart" onclick="selectApt('${a}')">🏠 ${a}</button>`)}
+function selectApt(a){apartment=a;initApt(a);save();showDash()}
+function show(id){document.querySelectorAll("main>section").forEach(s=>s.classList.add("hidden"));document.getElementById(id).classList.remove("hidden")}
+function showDash(){document.getElementById("dashTitle").textContent="🏠 "+apartment;let d=data[apartment],total=masters[apartment].reduce((s,x)=>s+x[1],0),at=Object.values(d.at).reduce((s,x)=>s+x,0),la=Object.values(d.laundry).reduce((s,x)=>s+x,0),da=Object.values(d.damaged).reduce((s,x)=>s+x,0);document.getElementById("summary").innerHTML=`<div class="ok"><b>Inventario maestro:</b> ${total}<br><b>En apartamento:</b> ${at} · <b>En lavandería:</b> ${la} · <b>Deterioradas:</b> ${da}</div>`;renderAlerts();show("dash")}
+function renderAlerts(){
+ const d=data[apartment], pending=Object.entries(d.laundry).filter(x=>x[1]>0), damaged=Object.entries(d.damaged).filter(x=>x[1]>0);
+ let h="";
+ if(pending.length) h+=`<div class="alert"><b>🟠 Pendientes en lavandería</b><ul>${pending.map(x=>`<li>${x[0]}: ${x[1]}</li>`).join("")}</ul></div>`;
+ if(damaged.length) h+=`<div class="alert"><b>🛠️ Deterioradas</b><ul>${damaged.map(x=>`<li>${x[0]}: ${x[1]}</li>`).join("")}</ul></div>`;
+ if(!pending.length&&!damaged.length) h=`<div class="ok"><b>🟢 Sin alertas.</b> El inventario está cuadrado.</div>`;
+ document.getElementById("alerts").innerHTML=h;
+}
+function idFor(n){return "q_"+btoa(unescape(encodeURIComponent(n))).replace(/=/g,"")}
+function nameFor(id){return decodeURIComponent(escape(atob(id.slice(2))))}
+function openMove(t){type=t;counts={};currentMove=nextMove();document.getElementById("moveTitle").textContent=t==="salida"?"🔴 Enviar a lavandería":"🟢 Recibir de lavandería";document.getElementById("moveNumber").textContent=currentMove;let s=now();document.getElementById("moveDate").textContent=`Fecha: ${s.date} · Hora: ${s.time}`;document.getElementById("person").value="";document.getElementById("missing").value=0;document.getElementById("damaged").value=0;document.getElementById("obs").value="";document.getElementById("issues").classList.toggle("hidden",t!=="recepcion");let b=document.getElementById("moveItems");b.innerHTML="";masters[apartment].forEach(([n])=>{let avail=t==="salida"?data[apartment].at[n]:data[apartment].laundry[n];let id=idFor(n);counts[n]=0;b.innerHTML+=`<div class="item"><div class="name">${n}<br><span class="small">${t==="salida"?"Disponible en apartamento: ":"Pendiente en lavandería: "}${avail}</span></div><div class="counter"><button onclick="chg('${id}',-1)">−</button><span class="qty" id="${id}">0</span><button onclick="chg('${id}',1)">+</button></div></div>`});show("move")}
+function chg(id,d){let n=nameFor(id),lim=type==="salida"?data[apartment].at[n]:data[apartment].laundry[n];counts[n]=Math.max(0,Math.min(lim,(counts[n]||0)+d));document.getElementById(id).textContent=counts[n]}
+function saveMove(){let person=document.getElementById("person").value;if(!person)return alert("Seleccione la persona que realiza el movimiento.");let entries=Object.entries(counts).filter(x=>x[1]>0);if(!entries.length)return alert("Seleccione al menos una cantidad.");let missing=+document.getElementById("missing").value||0,damaged=+document.getElementById("damaged").value||0,stamp=now();
+entries.forEach(([n,q])=>{if(type==="salida"){data[apartment].at[n]-=q;data[apartment].laundry[n]+=q}else{data[apartment].laundry[n]-=q;data[apartment].at[n]+=q}});
+data[apartment].hist.unshift({numero:currentMove,fecha:stamp.date,hora:stamp.time,tipo:type,persona:person,items:entries,faltantes:missing,deterioradas:damaged,obs:document.getElementById("obs").value});save();alert("Movimiento registrado correctamente.");showDash()}
+function showInventory(){let d=data[apartment],h="<table><tr><th>Elemento</th><th>Apto.</th><th>Lav.</th><th>Dañ.</th><th>Total</th></tr>";masters[apartment].forEach(([n,m])=>h+=`<tr><td>${n}</td><td>${d.at[n]}</td><td>${d.laundry[n]}</td><td>${d.damaged[n]}</td><td><b>${m}</b></td></tr>`);h+="</table>";document.getElementById("invBox").innerHTML=h;show("inv")}
+function showHistory(){let h=data[apartment].hist;if(!h.length){document.getElementById("histBox").innerHTML="<p>No hay movimientos.</p>";show("hist");return}document.getElementById("histBox").innerHTML=h.slice(0,50).map(x=>`<div class="card"><b>${x.numero} · ${x.tipo==="salida"?"🔴 Salida":"🟢 Recepción"}</b><br><span class="small">${x.fecha} · ${x.hora} · ${x.persona}</span><ul>${x.items.map(i=>`<li>${i[0]}: ${i[1]}</li>`).join("")}</ul>${x.faltantes?`<div class="alert">🔴 Faltantes: ${x.faltantes}</div>`:""}${x.deterioradas?`<div class="alert">🛠️ Deterioradas: ${x.deterioradas}</div>`:""}${x.obs?`<span class="small">Obs.: ${x.obs}</span>`:""}</div>`).join("");show("hist")}
+renderApts();
+</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+</body></html>
