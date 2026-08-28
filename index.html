@@ -15,11 +15,26 @@ button{border:0;border-radius:10px;padding:13px;font-size:16px;cursor:pointer}.m
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eef3f6}
 .small{font-size:12px;color:#667085}.alert{background:#fff3cd;padding:10px;border-radius:9px;margin:10px 0}.ok{background:#dff5e4;padding:10px;border-radius:9px;margin:10px 0}
 select,textarea,input{width:100%;padding:11px;border:1px solid #ccd5dc;border-radius:8px;font-size:15px;margin:5px 0 10px}
-.move{border:1px solid #ddd;border-radius:10px;padding:12px;margin:8px 0}.pending{color:#9a6700;font-weight:bold}.alert ul{margin:7px 0 0 18px;padding:0}.alert li{margin:3px 0}
+.move{border:1px solid #ddd;border-radius:10px;padding:12px;margin:8px 0}.pending{color:#9a6700;font-weight:bold}
+.general-card{border:1px solid #d8e0e5;border-radius:12px;padding:13px;margin:10px 0;background:#fff}
+.general-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.badge{padding:5px 8px;border-radius:999px;font-size:12px;font-weight:bold}
+.badge-ok{background:#dff5e4;color:#176b2c}.badge-alert{background:#fff3cd;color:#8a5a00}
+.general-line{font-size:13px;margin:5px 0}.general-link{width:100%;margin-top:8px;background:#e8eef2}
+.alert ul{margin:7px 0 0 18px;padding:0}.alert li{margin:3px 0}
 </style></head><body>
 <header><h1>🧺 Lencería Oceandrive</h1><p>Control de inventario y lavandería · V2 corregida</p></header>
 <main>
-<section id="home" class="card menu"><h2>Seleccionar apartamento</h2><div id="apartments"></div></section>
+<section id="home" class="card menu"><h2>Seleccionar apartamento</h2><div id="apartments"></div><button class="primary" onclick="showGeneralPanel()">📊 Panel general de apartamentos</button></section>
+<section id="general" class="card hidden">
+<h2>📊 Panel general de apartamentos</h2>
+<div id="generalLaundryBox" style="margin:12px 0;padding:14px;border-radius:12px;background:#f6f8fa;border:1px solid #d9e0e6">
+<h3 style="margin:0 0 8px">🧺 Lavandería general</h3>
+<div id="laundryGeneralSummary">Calculando pendientes…</div>
+</div>
+<div id="generalBox"></div>
+<button class="secondary" onclick="show('home')">Volver a apartamentos</button>
+</section>
 <section id="dash" class="card hidden"><h2 id="dashTitle"></h2><div id="summary"></div><div id="alerts"></div>
 <button class="receive" onclick="openMove('recepcion')">🟢 Recibir de lavandería</button>
 <button class="send" onclick="openMove('salida')">🔴 Enviar a lavandería</button>
@@ -69,7 +84,7 @@ function now(){let d=new Date();return {date:d.toLocaleDateString("es-CO"),time:
 function nextMove(){let n=data[apartment].next||1;data[apartment].next=n+1;save();return "MOV-"+String(n).padStart(4,"0")}
 function renderApts(){let b=document.getElementById("apartments");b.innerHTML="";Object.keys(masters).forEach(a=>b.innerHTML+=`<button class="apart" onclick="selectApt('${a}')">🏠 ${a}</button>`)}
 function selectApt(a){apartment=a;initApt(a);save();showDash()}
-function show(id){document.querySelectorAll("main>section").forEach(s=>s.classList.add("hidden"));document.getElementById(id).classList.remove("hidden")}
+function show(id){if(!document.getElementById(id))return;document.querySelectorAll("main>section").forEach(s=>s.classList.add("hidden"));document.getElementById(id).classList.remove("hidden")}
 function showDash(){document.getElementById("dashTitle").textContent="🏠 "+apartment;let d=data[apartment],total=masters[apartment].reduce((s,x)=>s+x[1],0),at=Object.values(d.at).reduce((s,x)=>s+x,0),la=Object.values(d.laundry).reduce((s,x)=>s+x,0),da=Object.values(d.damaged).reduce((s,x)=>s+x,0);document.getElementById("summary").innerHTML=`<div class="ok"><b>Inventario maestro:</b> ${total}<br><b>En apartamento:</b> ${at} · <b>En lavandería:</b> ${la} · <b>Deterioradas:</b> ${da}</div>`;renderAlerts();show("dash")}
 function renderAlerts(){
  const d=data[apartment], pending=Object.entries(d.laundry).filter(x=>x[1]>0), damaged=Object.entries(d.damaged).filter(x=>x[1]>0);
@@ -88,6 +103,54 @@ entries.forEach(([n,q])=>{if(type==="salida"){data[apartment].at[n]-=q;data[apar
 data[apartment].hist.unshift({numero:currentMove,fecha:stamp.date,hora:stamp.time,tipo:type,persona:person,items:entries,faltantes:missing,deterioradas:damaged,obs:document.getElementById("obs").value});save();alert("Movimiento registrado correctamente.");showDash()}
 function showInventory(){let d=data[apartment],h="<table><tr><th>Elemento</th><th>Apto.</th><th>Lav.</th><th>Dañ.</th><th>Total</th></tr>";masters[apartment].forEach(([n,m])=>h+=`<tr><td>${n}</td><td>${d.at[n]}</td><td>${d.laundry[n]}</td><td>${d.damaged[n]}</td><td><b>${m}</b></td></tr>`);h+="</table>";document.getElementById("invBox").innerHTML=h;show("inv")}
 function showHistory(){let h=data[apartment].hist;if(!h.length){document.getElementById("histBox").innerHTML="<p>No hay movimientos.</p>";show("hist");return}document.getElementById("histBox").innerHTML=h.slice(0,50).map(x=>`<div class="card"><b>${x.numero} · ${x.tipo==="salida"?"🔴 Salida":"🟢 Recepción"}</b><br><span class="small">${x.fecha} · ${x.hora} · ${x.persona}</span><ul>${x.items.map(i=>`<li>${i[0]}: ${i[1]}</li>`).join("")}</ul>${x.faltantes?`<div class="alert">🔴 Faltantes: ${x.faltantes}</div>`:""}${x.deterioradas?`<div class="alert">🛠️ Deterioradas: ${x.deterioradas}</div>`:""}${x.obs?`<span class="small">Obs.: ${x.obs}</span>`:""}</div>`).join("");show("hist")}
+function showGeneralPanel(){
+  Object.keys(masters).forEach(initApt);
+  save();
+  let h="";
+  Object.keys(masters).forEach(a=>{
+    const d=data[a];
+    const master=masters[a].reduce((s,x)=>s+x[1],0);
+    const at=Object.values(d.at).reduce((s,x)=>s+(+x||0),0);
+    const la=Object.values(d.laundry).reduce((s,x)=>s+(+x||0),0);
+    const da=Object.values(d.damaged).reduce((s,x)=>s+(+x||0),0);
+    const pending=Object.entries(d.laundry).filter(x=>(+x[1]||0)>0);
+    const status=(la===0&&da===0)?"ok":"alert";
+    let details="";
+    if(pending.length) details+=`<div class="general-line pending">🧺 Lavandería: ${la} pieza${la===1?"":"s"}</div>`;
+    if(da) details+=`<div class="general-line">🛠️ Deterioradas: ${da}</div>`;
+    if(!pending.length&&!da) details+=`<div class="general-line">🟢 Sin pendientes · Inventario cuadrado</div>`;
+    if(pending.length) details+=`<div class="general-line small">${pending.map(x=>x[0]+": "+x[1]).join(" · ")}</div>`;
+    h+=`<div class="general-card">
+      <div class="general-head"><b>🏠 ${a}</b><span class="badge ${status==="ok"?"badge-ok":"badge-alert"}">${status==="ok"?"🟢 CUADRADO":"🟠 REVISAR"}</span></div>
+      <div class="general-line">Maestro: <b>${master}</b> · En apartamento: <b>${at}</b> · En lavandería: <b>${la}</b></div>
+      ${details}
+      <button class="general-link" onclick="selectApt('${a}')">Abrir apartamento</button>
+    </div>`;
+  });
+  document.getElementById("generalBox").innerHTML=h;
+  renderLaundryGeneral();
+  show("general");
+}
 renderApts();
-</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+function renderLaundryGeneral(){
+  const el=document.getElementById('laundryGeneralSummary');
+  if(!el || typeof data==='undefined' || typeof masters==='undefined') return;
+  const rows=[];
+  let total=0;
+  Object.keys(masters).forEach(a=>{
+    const apt=data[a]||{};
+    const l=apt.laundry||{};
+    const items=masters[a].map(x=>x[0]).map(n=>[n,Number(l[n]||0)]).filter(x=>x[1]>0);
+    const qty=items.reduce((s,x)=>s+x[1],0);
+    total+=qty;
+    if(qty) rows.push('<div style="margin:6px 0"><strong>'+a+'</strong> — '+items.map(x=>x[1]+' '+x[0]).join(', ')+'</div>');
+  });
+  if(!total){
+    el.innerHTML='<strong>🟢 Sin pendientes en lavandería</strong><div style="margin-top:4px">Todos los apartamentos están cuadrados.</div>';
+  }else{
+    el.innerHTML=rows.join('')+'<div style="margin-top:8px"><strong>Total pendientes: '+total+' piezas</strong></div>';
+  }
+}
+</script>
 </body></html>
