@@ -42,11 +42,28 @@ select,textarea,input{width:100%;padding:11px;border:1px solid #ccd5dc;border-ra
 const masters={
 "808 – Oceandrive":[["Toallas de cuerpo",8],["Toallas de mano",4],["Toallas de piso",2],["Toallas de piscina",4],["Sábanas cama doble",4],["Fundas cama doble",8],["Sábanas sofá cama",4],["Fundas sofá cama",4],["Cobija gruesa",2],["Protector de colchón",1],["Protector de almohada",4],["Pie de cama",1]],
 "313":[["Toallas de cuerpo",8],["Toallas de mano",4],["Toallas de piso",4],["Toallas de piscina",4],["Sábanas cama 2X2",4],["Fundas cama grande",8],["Sábanas sofá cama",8],["Fundas sofá cama",4],["Cobija gruesa",2],["Protector de colchón",1],["Protector almohada",4],["Pie de cama",1]],
-"201":[["Toallas de cuerpo",8],["Toallas de mano",2],["Toallas de piso",4],["Toallas de piscina",4],["Sábanas cama doble",8],["Fundas cama doble",16],["Sábanas sofá cama",4],["Fundas sofá cama",2],["Cobija gruesa",2],["Protector de colchón",1],["Protector almohada",9],["Pie de cama",0]]
+"201":[["Toallas de cuerpo",8],["Toallas de mano",2],["Toallas de piso",4],["Toallas de piscina",4],["Sábanas cama doble",8],["Fundas cama doble",16],["Sábanas sofá cama",4],["Fundas sofá cama",2],["Cobija gruesa",2],["Protector de colchón",1],["Protector de almohada",9],["Pie de cama",0]]
 };
 let apartment="",type="",counts={},currentMove="";
 let data=JSON.parse(localStorage.getItem("lencV2")||"null")||{};
-function initApt(a){if(!data[a])data[a]={at:Object.fromEntries(masters[a].map(x=>[x[0],x[1]])),laundry:Object.fromEntries(masters[a].map(x=>[x[0],0])),damaged:Object.fromEntries(masters[a].map(x=>[x[0],0])),hist:[],next:1};}
+function initApt(a){
+ if(!data[a]) data[a]={at:{},laundry:{},damaged:{},hist:[],next:1};
+ const aliases={"Protector de almohada":["Protector almohada"],"Protector almohada":["Protector de almohada"]};
+ masters[a].forEach(([n,m])=>{
+   if(data[a].at[n]===undefined){
+     const old=(aliases[n]||[]).find(k=>data[a].at[k]!==undefined);
+     data[a].at[n]=old!==undefined?data[a].at[old]:m;
+   }
+   if(data[a].laundry[n]===undefined){
+     const old=(aliases[n]||[]).find(k=>data[a].laundry[k]!==undefined);
+     data[a].laundry[n]=old!==undefined?data[a].laundry[old]:0;
+   }
+   if(data[a].damaged[n]===undefined){
+     const old=(aliases[n]||[]).find(k=>data[a].damaged[k]!==undefined);
+     data[a].damaged[n]=old!==undefined?data[a].damaged[old]:0;
+   }
+ });
+}
 function save(){localStorage.setItem("lencV2",JSON.stringify(data))}
 function now(){let d=new Date();return {date:d.toLocaleDateString("es-CO"),time:d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}}
 function nextMove(){let n=data[apartment].next||1;data[apartment].next=n+1;save();return "MOV-"+String(n).padStart(4,"0")}
