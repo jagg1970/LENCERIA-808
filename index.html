@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f6f8b">
+<link rel="manifest" href="manifest.json">
+<title>Lencería Apartamentos JG</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6f8;color:#1f2933}
+header{background:#1f6f8b;color:#fff;padding:18px;text-align:center}h1{margin:0;font-size:21px}header p{margin:5px 0;font-size:13px}
+main{max-width:650px;margin:auto;padding:14px}.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #0001}
+button{border:0;border-radius:10px;padding:13px;font-size:16px;cursor:pointer}.menu button{width:100%;margin:6px 0;color:#fff}
+.receive{background:#238636;color:#fff}.send{background:#c62828;color:#fff}.inventory{background:#455a64;color:#fff}.history{background:#6a4c93;color:#fff}.apart{background:#1f6f8b;color:#fff;width:100%;margin:6px 0}
+.primary{background:#1f6f8b;color:#fff;width:100%;margin-top:12px}.secondary{background:#e8eef2;width:100%;margin-top:8px}
+.hidden{display:none!important}.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee}.name{max-width:58%;font-size:14px}
+.counter{display:flex;align-items:center;gap:8px}.counter button{width:40px;height:40px;padding:0;background:#e8eef2;font-size:23px}.qty{min-width:24px;text-align:center;font-weight:bold}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eef3f6}
+.small{font-size:12px;color:#667085}.alert{background:#fff3cd;padding:10px;border-radius:9px;margin:10px 0}.ok{background:#dff5e4;padding:10px;border-radius:9px;margin:10px 0}
+select,textarea,input{width:100%;padding:11px;border:1px solid #ccd5dc;border-radius:8px;font-size:15px;margin:5px 0 10px}
+.move{border:1px solid #ddd;border-radius:10px;padding:12px;margin:8px 0}.pending{color:#9a6700;font-weight:bold}
+.general-card{border:1px solid #d8e0e5;border-radius:12px;padding:13px;margin:10px 0;background:#fff}.general-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.badge{padding:5px 8px;border-radius:999px;font-size:12px;font-weight:bold}.badge-ok{background:#dff5e4;color:#176b2c}.badge-alert{background:#fff3cd;color:#8a5a00}
+.general-line{font-size:13px;margin:5px 0}.general-link{width:100%;margin-top:8px;background:#e8eef2}
+#authScreen{max-width:430px;margin:30px auto;padding:14px}.auth-card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 8px #0001}
+.auth-message{margin:10px 0;padding:10px;border-radius:8px;display:none}.auth-message.error{display:block;background:#fde8e7;color:#9f1d1d}.auth-message.ok{display:block;background:#dff5e4;color:#176b2c}
+#userBar{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#e8eef2;padding:10px 14px;margin:0 auto;max-width:650px;border-radius:0 0 12px 12px}#userInfo{font-size:13px}
+</style>
+</head>
+<body>
+
+<section id="authScreen">
+  <div class="auth-card">
+    <h2>🧺 Lencería Apartamentos JG</h2>
+    <p class="small">Inicia sesión para acceder al inventario centralizado.</p>
+    <form id="loginForm">
+      <label>Correo electrónico</label>
+      <input id="loginEmail" type="email" autocomplete="email" required>
+      <label>Contraseña</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" required>
+      <div id="authMessage" class="auth-message"></div>
+      <button id="loginButton" class="primary" type="submit">INICIAR SESIÓN</button>
+    </form>
+  </div>
+</section>
+
+<div id="appShell" class="hidden">
+<header><h1>🧺 Lencería Apartamentos JG</h1><p>Control centralizado de inventario y lavandería</p></header>
+<div id="userBar"><div id="userInfo"><strong id="userName">Cargando...</strong><br><span id="userRole" class="small"></span></div><button id="logoutButton" class="secondary" type="button">Cerrar sesión</button></div>
+
+<main>
+<section id="home" class="card menu"><h2>Seleccionar apartamento</h2><div id="apartments"></div><button class="primary" onclick="showGeneralPanel()">📊 Panel general de apartamentos</button></section>
+
+<section id="general" class="card hidden">
+<h2>📊 Panel general de apartamentos</h2>
+<div id="generalLaundryBox" style="margin:12px 0;padding:14px;border-radius:12px;background:#f6f8fa;border:1px solid #d9e0e6">
+<h3 style="margin:0 0 8px">🧺 Lavandería general</h3><div id="laundryGeneralSummary">Calculando pendientes…</div>
+</div><div id="generalBox"></div><button class="secondary" onclick="show('home')">Volver a apartamentos</button>
+</section>
+
+<section id="dash" class="card hidden"><h2 id="dashTitle"></h2><div id="summary"></div><div id="alerts"></div>
+<button class="receive" data-move onclick="openMove('recepcion')">🟢 Recibir de lavandería</button>
+<button class="send" data-move onclick="openMove('salida')">🔴 Enviar a lavandería</button>
+<button class="inventory" onclick="showInventory()">📦 Inventario</button>
+<button class="history" onclick="showHistory()">📋 Historial</button>
+<button class="secondary" onclick="show('home')">Cambiar apartamento</button></section>
+
+<section id="move" class="card hidden"><h2 id="moveTitle"></h2>
+<div class="move"><b id="moveNumber"></b><br><span id="moveDate" class="small"></span></div>
+<label>Persona que realiza el movimiento</label>
+<select id="person"><option value="">Seleccione...</option><option>Empleada</option><option>Administrador</option><option>Lavandería</option><option>Otro</option></select>
+<div id="moveItems"></div>
+<div id="issues" class="hidden"><h3>Faltantes / deterioros</h3>
+<label>Faltantes (informativos)</label><input id="missing" type="number" min="0" value="0">
+<label>Deterioradas (informativos)</label><input id="damaged" type="number" min="0" value="0">
+</div>
+<label>Motivo / observaciones</label><textarea id="obs" rows="2"></textarea>
+<button id="saveMoveButton" class="primary" onclick="saveMove()">Guardar movimiento</button>
+<button class="secondary" onclick="showDash()">Cancelar</button>
+</section>
+
+<section id="inv" class="card hidden"><h2>📦 Inventario</h2><div id="invBox"></div><button class="secondary" onclick="showDash()">Volver</button></section>
+<section id="hist" class="card hidden"><h2>📋 Historial</h2><div id="histBox"></div><button class="secondary" onclick="showDash()">Volver</button></section>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://zwubeaqqrglvawyzlxbn.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_D2Kmg82Sg05UV_fAUtyN1w_3HbVO2Ni";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+let currentUser=null,currentProfile=null,currentRole=null;
+let apartmentsByCode={},inventoryCache={},apartment="",type="",counts={},currentMove="",realtimeChannel=null;
+
+function show(id){document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));document.getElementById(id)?.classList.remove("hidden")}
+function roleLabel(r){return({administrador:"Administrador",lavanderia:"Personal de lavandería",apartamento:"Empleado de apartamento",consulta:"Consulta"})[r]||r||"Sin rol"}
+function can(action){const p={administrador:["view","move","manage"],lavanderia:["view","move"],apartamento:["view","move"],consulta:["view"]};return(p[currentRole]||[]).includes(action)}
+function setAuthMessage(m="",t=""){const e=document.getElementById("authMessage");e.textContent=m;e.className=("auth-message "+t).trim()}
+function idFor(n){return"q_"+btoa(unescape(encodeURIComponent(n))).replace(/=/g,"")}
+function nameFor(id){return decodeURIComponent(escape(atob(id.slice(2))))}
+function now(){const d=new Date();return{date:d.toLocaleDateString("es-CO"),time:d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}}
+function nextMove(){return "MOV-"+Date.now()}
+function rows(){return inventoryCache[apartment]||[]}
+function aptId(){return apartmentsByCode[apartment]?.id||null}
+
+async function loadProfile(uid){
+ const {data,error}=await sb.from("perfiles").select("id,nombre,rol,apartamento_id,activo").eq("id",uid).single();
+ if(error)throw new Error("No fue posible cargar el perfil del usuario.");
+ if(!data?.activo)throw new Error("Tu usuario no está activo.");
+ currentProfile=data;currentRole=data.rol;
+ document.getElementById("userName").textContent=data.nombre||currentUser.email;
+ document.getElementById("userRole").textContent=roleLabel(data.rol);
+}
+
+async function loadApartments(){
+ const {data,error}=await sb.from("apartamentos").select("id,codigo,nombre,activo").eq("activo",true).order("codigo");
+ if(error)throw error;apartmentsByCode=Object.fromEntries(data.map(x=>[x.codigo,x]));
+ document.getElementById("apartments").innerHTML=data.map(a=>`<button class="apart" onclick="selectApt('${a.codigo}')">🏠 ${a.nombre}</button>`).join("");
+}
+
+async function loadInventory(code){
+ const a=apartmentsByCode[code];if(!a)throw new Error("Apartamento no encontrado.");
+ const [m,s]=await Promise.all([
+  sb.from("inventario_maestro").select("elemento,cantidad_maestra").eq("apartamento_id",a.id).order("elemento"),
+  sb.from("inventario_estado").select("elemento,en_apartamento,en_lavanderia,deterioradas,updated_at").eq("apartamento_id",a.id).order("elemento")
+ ]);
+ if(m.error)throw m.error;if(s.error)throw s.error;
+ const map=Object.fromEntries((s.data||[]).map(x=>[x.elemento,x]));
+ inventoryCache[code]=(m.data||[]).map(x=>({elemento:x.elemento,cantidad_maestra:Number(x.cantidad_maestra||0),en_apartamento:Number(map[x.elemento]?.en_apartamento||0),en_lavanderia:Number(map[x.elemento]?.en_lavanderia||0),deterioradas:Number(map[x.elemento]?.deterioradas||0)}));
+}
+
+async function selectApt(code){try{apartment=code;await loadInventory(code);showDash()}catch(e){alert("No fue posible cargar el inventario: "+e.message)}}
+
+function applyRolePermissions(){document.querySelectorAll("[data-move]").forEach(b=>b.classList.toggle("hidden",!can("move")))}
+
+function showDash(){
+ const r=rows(),a=apartmentsByCode[apartment];
+ document.getElementById("dashTitle").textContent="🏠 "+(a?.nombre||apartment);
+ const total=r.reduce((s,x)=>s+x.cantidad_maestra,0),at=r.reduce((s,x)=>s+x.en_apartamento,0),la=r.reduce((s,x)=>s+x.en_lavanderia,0),da=r.reduce((s,x)=>s+x.deterioradas,0);
+ document.getElementById("summary").innerHTML=`<div class="ok"><b>Inventario maestro:</b> ${total}<br><b>En apartamento:</b> ${at} · <b>En lavandería:</b> ${la} · <b>Deterioradas:</b> ${da}</div>`;
+ const pending=r.filter(x=>x.en_lavanderia>0),damaged=r.filter(x=>x.deterioradas>0);let h="";
+ if(pending.length)h+=`<div class="alert"><b>🟠 Pendientes en lavandería</b><ul>${pending.map(x=>`<li>${x.elemento}: ${x.en_lavanderia}</li>`).join("")}</ul></div>`;
+ if(damaged.length)h+=`<div class="alert"><b>🛠️ Deterioradas</b><ul>${damaged.map(x=>`<li>${x.elemento}: ${x.deterioradas}</li>`).join("")}</ul></div>`;
+ if(!h)h='<div class="ok"><b>🟢 Sin alertas.</b> El inventario está cuadrado.</div>';
+ document.getElementById("alerts").innerHTML=h;applyRolePermissions();show("dash");
+}
+
+function openMove(t){
+ if(!can("move"))return alert("Tu usuario no tiene permiso para registrar movimientos.");
+ type=t;counts={};currentMove=nextMove();document.getElementById("moveTitle").textContent=t==="salida"?"🔴 Enviar a lavandería":"🟢 Recibir de lavandería";
+ document.getElementById("moveNumber").textContent=currentMove;const s=now();document.getElementById("moveDate").textContent=`Fecha: ${s.date} · Hora: ${s.time}`;
+ document.getElementById("person").value="";document.getElementById("missing").value=0;document.getElementById("damaged").value=0;document.getElementById("obs").value="";
+ document.getElementById("issues").classList.toggle("hidden",t!=="recepcion");
+ const b=document.getElementById("moveItems");b.innerHTML="";
+ rows().forEach(x=>{const avail=t==="salida"?x.en_apartamento:x.en_lavanderia,id=idFor(x.elemento);counts[x.elemento]=0;
+ b.innerHTML+=`<div class="item"><div class="name">${x.elemento}<br><span class="small">${t==="salida"?"Disponible en apartamento: ":"Pendiente en lavandería: "}${avail}</span></div><div class="counter"><button onclick="chg('${id}',-1)">−</button><span class="qty" id="${id}">0</span><button onclick="chg('${id}',1)">+</button></div></div>`});
+ show("move");
+}
+function chg(id,d){const n=nameFor(id),r=rows().find(x=>x.elemento===n),lim=type==="salida"?r.en_apartamento:r.en_lavanderia;counts[n]=Math.max(0,Math.min(lim,(counts[n]||0)+d));document.getElementById(id).textContent=counts[n]}
+
+async function saveMove(){
+ const person=document.getElementById("person").value;if(!person)return alert("Seleccione la persona que realiza el movimiento.");
+ const items=Object.entries(counts).filter(([,q])=>q>0).map(([elemento,cantidad])=>({elemento,cantidad:Number(cantidad)}));if(!items.length)return alert("Seleccione al menos una cantidad.");
+ const missing=Number(document.getElementById("missing").value||0),damaged=Number(document.getElementById("damaged").value||0),obs=document.getElementById("obs").value.trim();
+ const button=document.getElementById("saveMoveButton");button.disabled=true;button.textContent="Guardando...";
+ const observaciones=[obs,`Persona: ${person}`,missing?`Faltantes informativos: ${missing}`:"",damaged?`Deterioradas informativas: ${damaged}`:""].filter(Boolean).join(" | ");
+ try{
+  const {error}=await sb.rpc("registrar_movimiento_lenceria",{p_apartamento_id:aptId(),p_tipo:type==="salida"?"salida_lavanderia":"recepcion_lavanderia",p_items:items,p_observaciones:observaciones||null,p_numero:currentMove});
+  if(error)throw error;
+  await loadInventory(apartment);showDash();alert("Movimiento registrado correctamente.");
+ }catch(e){alert("No fue posible registrar el movimiento: "+(e.message||"Error desconocido"))}
+ finally{button.disabled=false;button.textContent="Guardar movimiento"}
+}
+
+function showInventory(){
+ document.getElementById("invBox").innerHTML=`<table><thead><tr><th>Elemento</th><th>Apto.</th><th>Lav.</th><th>Dañ.</th><th>Total</th></tr></thead><tbody>${rows().map(x=>`<tr><td>${x.elemento}</td><td>${x.en_apartamento}</td><td>${x.en_lavanderia}</td><td>${x.deterioradas}</td><td><b>${x.cantidad_maestra}</b></td></tr>`).join("")}</tbody></table>`;show("inv")
+}
+
+async function showHistory(){
+ try{
+  const {data,error}=await sb.from("movimientos").select("numero,tipo,elemento,cantidad,observaciones,created_at").eq("apartamento_id",aptId()).order("created_at",{ascending:false}).limit(100);
+  if(error)throw error;
+  document.getElementById("histBox").innerHTML=!data.length?"<p>No hay movimientos.</p>":data.map(x=>`<div class="card"><b>${x.numero} · ${x.tipo.includes("salida")?"🔴 Salida":"🟢 Recepción"}</b><br><span class="small">${new Date(x.created_at).toLocaleString("es-CO")}</span><div>${x.elemento}: <b>${x.cantidad}</b></div>${x.observaciones?`<span class="small">Obs.: ${x.observaciones}</span>`:""}</div>`).join("");
+  show("hist");
+ }catch(e){alert("No fue posible cargar el historial: "+e.message)}
+}
+
+async function showGeneralPanel(){
+ try{
+  let totalLaundry=0,cards=[];
+  for(const a of Object.values(apartmentsByCode)){await loadInventory(a.codigo);const r=inventoryCache[a.codigo];const master=r.reduce((s,x)=>s+x.cantidad_maestra,0),at=r.reduce((s,x)=>s+x.en_apartamento,0),la=r.reduce((s,x)=>s+x.en_lavanderia,0);totalLaundry+=la;
+  cards.push(`<div class="general-card"><div class="general-head"><b>${a.nombre}</b><span class="badge ${la?"badge-alert":"badge-ok"}">${la?"🟠 REVISAR":"🟢 CUADRADO"}</span></div><div class="general-line">Maestro: <b>${master}</b> · En apartamento: <b>${at}</b> · En lavandería: <b>${la}</b></div><button class="general-link" onclick="selectApt('${a.codigo}')">Abrir apartamento</button></div>`)}
+  document.getElementById("generalBox").innerHTML=cards.join("");document.getElementById("laundryGeneralSummary").innerHTML=totalLaundry?`<strong>🟠 ${totalLaundry} piezas pendientes en lavandería</strong>`:"<strong>🟢 Sin pendientes en lavandería</strong><div style='margin-top:4px'>Todos los apartamentos están cuadrados.</div>";show("general");
+ }catch(e){alert("No fue posible cargar el panel general: "+e.message)}
+}
+
+async function refreshRealtime(apartmentId){
+ const a=Object.values(apartmentsByCode).find(x=>x.id===apartmentId);if(!a)return;await loadInventory(a.codigo);
+ if(a.codigo===apartment){const visible=document.querySelector("main>section:not(.hidden)")?.id;if(visible==="dash")showDash();else if(visible==="inv")showInventory();else if(visible==="hist")showHistory();}
+}
+function startRealtime(){
+ if(realtimeChannel)sb.removeChannel(realtimeChannel);
+ realtimeChannel=sb.channel("lenceria-inventario-realtime")
+ .on("postgres_changes",{event:"*",schema:"public",table:"inventario_estado"},p=>refreshRealtime(p.new?.apartamento_id||p.old?.apartamento_id))
+ .on("postgres_changes",{event:"INSERT",schema:"public",table:"movimientos"},p=>refreshRealtime(p.new?.apartamento_id))
+ .subscribe();
+}
+function stopRealtime(){if(realtimeChannel){sb.removeChannel(realtimeChannel);realtimeChannel=null}}
+
+async function login(e){e.preventDefault();const email=document.getElementById("loginEmail").value.trim(),password=document.getElementById("loginPassword").value,button=document.getElementById("loginButton");button.disabled=true;button.textContent="Ingresando...";setAuthMessage();
+ try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;await loadProfile(currentUser.id);await loadApartments();document.getElementById("authScreen").classList.add("hidden");document.getElementById("appShell").classList.remove("hidden");startRealtime();show("home")}
+ catch(err){setAuthMessage(err.message||"No fue posible iniciar sesión.","error")}
+ finally{button.disabled=false;button.textContent="INICIAR SESIÓN"}}
+async function logout(){stopRealtime();await sb.auth.signOut();currentUser=currentProfile=currentRole=null;apartmentsByCode={};inventoryCache={};apartment="";document.getElementById("appShell").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden");setAuthMessage("Sesión cerrada correctamente.","ok")}
+async function restoreSession(){const {data}=await sb.auth.getSession();if(!data.session?.user)return;try{currentUser=data.session.user;await loadProfile(currentUser.id);await loadApartments();document.getElementById("authScreen").classList.add("hidden");document.getElementById("appShell").classList.remove("hidden");startRealtime();show("home")}catch(e){await sb.auth.signOut();setAuthMessage(e.message,"error")}}
+document.getElementById("loginForm").addEventListener("submit",login);document.getElementById("logoutButton").addEventListener("click",logout);restoreSession();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body></html>
